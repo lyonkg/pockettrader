@@ -1,0 +1,35 @@
+{
+  "name": "PocketTrader — Stocks & Crypto",
+  "short_name": "PocketTrader",
+  "description": "Paper-trading app for stocks and crypto: portfolio, watchlist, charts and orders.",
+  "id": "/pockettrader/",
+  "start_url": "/pockettrader/",
+  "scope": "/pockettrader/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0B0F14",
+  "theme_color": "#0B0F14",
+  "categories": [
+    "finance"
+  ],
+  "icons": [
+    {
+      "src": "/pockettrader/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pockettrader/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pockettrader/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
