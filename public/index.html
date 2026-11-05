@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+    <title>PocketTrader</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://api.coingecko.com https://finnhub.io; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#0B0F14" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="PocketTrader" />
+    <meta name="application-name" content="PocketTrader" />
+    <meta name="description" content="Paper-trading app for stocks and crypto: portfolio, watchlist, live charts and orders." />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <style id="expo-reset">
+      html, body { height: 100%; background: #0B0F14; overscroll-behavior: none; }
+      body { overflow: hidden; margin: 0; }
+      #root { display: flex; height: 100%; flex: 1; }
+      #boot { margin: auto; color: #8A97A8; font: 600 15px -apple-system, system-ui, sans-serif; text-align: center; }
+      #boot b { display: block; color: #E8EEF5; font-size: 22px; margin-bottom: 6px; }
+    </style>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () { navigator.serviceWorker.register('/sw.js').catch(function () {}); });
+      }
+    </script>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"><div id="boot"><b>PocketTrader</b>Loading…</div></div>
+  </body>
+</html>

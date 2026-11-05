@@ -1,0 +1,40 @@
+{
+  "expo": {
+    "name": "PocketTrader",
+    "slug": "pocket-trader",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0B0F14",
+    "splash": {
+      "backgroundColor": "#0B0F14"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.demo.pockettrader"
+    },
+    "android": {
+      "package": "com.demo.pockettrader",
+      "adaptiveIcon": {
+        "backgroundColor": "#0B0F14",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "name": "PocketTrader",
+      "shortName": "PocketTrader",
+      "themeColor": "#0B0F14",
+      "backgroundColor": "#0B0F14",
+      "favicon": "./assets/favicon.png"
+    },
+    "experiments": {
+      "baseUrl": "/pockettrader"
+    }
+  }
+}
