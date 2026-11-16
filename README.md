@@ -12,8 +12,8 @@ The link opens the app directly in mobile Safari or Chrome over HTTPS, with no l
 |---|---|---|
 | Web app / PWA (primary) | https://lyonkg.github.io/pockettrader/ | Permanent (GitHub Pages) |
 | Source repository | https://github.com/lyonkg/pockettrader | Permanent |
-| Android APK (debug-signed, arm64) | https://github.com/lyonkg/pockettrader/releases/download/v1.0.0/trading-app.apk | Permanent (GitHub Release) |
-| Source code zip | https://github.com/lyonkg/pockettrader/releases/download/v1.0.0/trading-app-source.zip | Permanent (GitHub Release) |
+| Android APK (debug-signed, arm64) | https://github.com/lyonkg/pockettrader/releases/download/v1.0.1/trading-app.apk | Permanent (GitHub Release) |
+| Source code zip | https://github.com/lyonkg/pockettrader/releases/download/v1.0.1/trading-app-source.zip | Permanent (GitHub Release) |
 
 Older mirrors (may expire):
 - deed.page: https://lyonkg.github.io/pockettrader/ (host marked permanent; free plan)
