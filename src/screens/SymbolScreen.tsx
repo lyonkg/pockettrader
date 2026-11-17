@@ -6,6 +6,8 @@ import { getSymbolInfo } from '../data/symbols';
 import { Candle, Timeframe } from '../data/types';
 import PriceChart from '../components/PriceChart';
 import { Button, Card, PnlText, Row, Segmented } from '../components/ui';
+import { DataBadge } from '../components/DataBadge';
+import { describeQuote } from '../data';
 import { colors } from '../theme';
 import { fmtMoney, fmtPct, fmtQty, fmtTime } from '../utils/format';
 import type { RootStackParamList } from '../navigation';
@@ -16,7 +18,7 @@ const TIMEFRAMES: Timeframe[] = ['1D', '1W', '1M', '1Y'];
 export default function SymbolScreen({ route, navigation }: Props) {
   const { symbol } = route.params;
   const info = getSymbolInfo(symbol);
-  const { quotes, provider, account, watchlist, addToWatchlist, removeFromWatchlist } = useApp();
+  const { quotes, provider, account, watchlist, addToWatchlist, removeFromWatchlist, settings } = useApp();
   const quote = quotes[symbol];
   const [tf, setTf] = useState<Timeframe>('1D');
   const [history, setHistory] = useState<Candle[]>([]);
@@ -67,7 +69,10 @@ export default function SymbolScreen({ route, navigation }: Props) {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={{ padding: 16, paddingBottom: 40, gap: 12 }} testID="symbol-screen">
       <View>
-        <Text style={styles.name}>{info?.name ?? symbol}{quote ? ` · ${quote.source}` : ''}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <Text style={styles.name}>{info?.name ?? symbol}{quote ? ` · ${quote.source}` : ''}</Text>
+          {describeQuote(settings.provider, quote) ? <DataBadge info={describeQuote(settings.provider, quote)!} compact /> : null}
+        </View>
         <Text style={styles.price} testID="symbol-price">{shown != null ? fmtMoney(shown) : '—'}</Text>
         {scrub ? (
           <Text style={styles.muted}>{fmtTime(scrub.t)}  <Text style={{ color: changeColor }}>{fmtMoney(tfChange, { sign: true })} ({fmtPct(tfPct)})</Text></Text>

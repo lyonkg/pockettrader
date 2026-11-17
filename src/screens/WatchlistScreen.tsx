@@ -4,13 +4,15 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useApp } from '../store/AppContext';
 import { getSymbolInfo, searchSymbols } from '../data/symbols';
+import { DataBadge } from '../components/DataBadge';
+import { describeQuote } from '../data';
 import { colors } from '../theme';
 import { fmtMoney, fmtPct } from '../utils/format';
 import type { RootStackParamList } from '../navigation';
 
 export default function WatchlistScreen() {
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { watchlist, quotes, addToWatchlist, removeFromWatchlist } = useApp();
+  const { watchlist, quotes, addToWatchlist, removeFromWatchlist, settings } = useApp();
   const [query, setQuery] = useState('');
   const searching = query.trim().length > 0;
   const results = searching ? searchSymbols(query) : [];
@@ -64,7 +66,10 @@ export default function WatchlistScreen() {
             return (
               <Pressable style={styles.row} onPress={() => nav.navigate('Symbol', { symbol: item })} testID={`watch-${item}`}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.sym}>{item}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={styles.sym}>{item}</Text>
+                    {describeQuote(settings.provider, q) ? <DataBadge info={describeQuote(settings.provider, q)!} compact /> : null}
+                  </View>
                   <Text style={styles.name} numberOfLines={1}>{getSymbolInfo(item)?.name}</Text>
                 </View>
                 <View style={{ alignItems: 'flex-end', marginRight: 10 }}>

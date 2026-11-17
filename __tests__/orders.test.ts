@@ -35,6 +35,13 @@ describe('order logic', () => {
     expect(r.account.cash).toBe(1_000);
   });
 
+  it('rejects invalid symbols, sides, and oversized quantities', () => {
+    const a = createAccount(1_000);
+    expect(validateOrder(a, { symbol: '<script>', side: 'buy', type: 'market', qty: 1 }, 10)).toMatch(/Invalid symbol/);
+    expect(validateOrder(a, { symbol: 'A', side: 'hold' as any, type: 'market', qty: 1 }, 10)).toMatch(/Invalid side/);
+    expect(validateOrder(a, { symbol: 'A', side: 'buy', type: 'market', qty: 1e12 }, 10)).toMatch(/too large/);
+  });
+
   it('rejects bad quantities and limit prices', () => {
     const a = createAccount(1_000);
     expect(validateOrder(a, { symbol: 'A', side: 'buy', type: 'market', qty: 0 }, 10)).toMatch(/Quantity/);

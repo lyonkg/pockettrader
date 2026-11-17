@@ -8,6 +8,8 @@ const zlib = require('zlib');
 const ROOT = path.resolve(__dirname, '..', 'dist');
 const DL = path.resolve(__dirname, '..', 'downloads');
 const PORT = Number(process.env.PORT || 8080);
+const app = JSON.parse(fs.readFileSync(path.resolve(__dirname, '..', 'app.json'), 'utf8'));
+const BASE = String(app.expo?.experiments?.baseUrl || '').replace(/\/+$/, ''); // e.g. '/pockettrader'
 const TYPES = {
   '.html': 'text/html; charset=utf-8', '.js': 'application/javascript; charset=utf-8', '.json': 'application/json',
   '.png': 'image/png', '.ico': 'image/x-icon', '.svg': 'image/svg+xml', '.ttf': 'font/ttf', '.css': 'text/css',
@@ -15,7 +17,8 @@ const TYPES = {
 };
 
 function resolve(urlPath) {
-  const p = decodeURIComponent(urlPath.split('?')[0]);
+  let p = decodeURIComponent(urlPath.split('?')[0]);
+  if (BASE && (p === BASE || p.startsWith(BASE + '/'))) p = p.slice(BASE.length) || '/';
   for (const base of [ROOT, DL]) {
     const f = path.join(base, p);
     if (!f.startsWith(base)) continue;

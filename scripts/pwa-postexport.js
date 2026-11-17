@@ -76,7 +76,8 @@ if (fs.existsSync(swPath)) {
     `caches.match(req.mode === 'navigate' ? '${shell}' : req)`);
   sw = sw.replace(/caches\.match\(req\.mode === 'navigate' \? '\/' : req\)/g,
     `caches.match(req.mode === 'navigate' ? '${shell}' : req)`);
-  sw = sw.replace(/pockettrader-[a-z0-9-]*/, `pockettrader-gh-${(base || 'root').replace(/\W+/g, '')}-v1`);
+  const ver = String(app.expo?.version || 'dev').replace(/\W+/g, '-');
+  sw = sw.replace(/pockettrader-[a-z0-9-]*/, `pockettrader-gh-${(base || 'root').replace(/\W+/g, '')}-${ver}`);
   fs.writeFileSync(swPath, sw);
 }
 

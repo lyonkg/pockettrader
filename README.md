@@ -29,7 +29,7 @@ Older mirrors (may expire):
 - **Symbol detail**: an SVG line/area chart with 1D/1W/1M/1Y timeframes. Touch and drag (or click and drag on desktop) to scrub and read the price and time at any point. The 1D chart also adds live ticks. You can star a symbol to add it to the watchlist and see your position here.
 - **Orders**: buy or sell, market or limit, with a quantity input (fractional for crypto) and a MAX button. Each order goes through a preview and confirm step. Orders that need more cash or shares than you have are rejected, and so are invalid quantities or prices. Limit orders that can fill right away do so at the better price. Others stay open, keep the needed cash or shares aside, and fill automatically when the price crosses the limit (an in-app toast appears). Open orders can be cancelled.
 - **Order history**: filter by All / Open / Filled / Other (cancelled or rejected).
-- **Settings**: switch between Mock and Live data, enter a Finnhub API key, see where current quotes come from, and reset the demo account.
+- **Settings**: switch between Mock and Live data, enter a Finnhub API key (stored on-device and always masked), see provider status and the last error, and reset the demo account. A header badge shows **LIVE DATA** (green), **MOCK** (grey), or **MOCK FALLBACK** (orange) when Live mode has to fall back.
 - **Persistence**: the account, orders, watchlist, and settings are saved with AsyncStorage (localStorage on web).
 - **Dark UI** with bottom tab navigation (Portfolio · Watchlist · Orders · Settings).
 
@@ -41,18 +41,21 @@ src/
   data/
     types.ts                 MarketDataProvider interface: getQuote / getHistory / subscribe
     MockProvider.ts          Deterministic seeded random walk (FNV-1a + mulberry32), ticks every 1.5 s
-    LiveProvider.ts          CoinGecko (crypto, no key) + Finnhub /quote (stocks, key); mock fallback per call
-    index.ts                 createProvider(mode, apiKey); one shared mock keeps prices continuous
-    config.ts                EXPO_PUBLIC_DATA_PROVIDER / EXPO_PUBLIC_API_KEY, starting cash
+    LiveProvider.ts          Hybrid live feed: CoinGecko (crypto) + Finnhub (stocks) with cache, rate limits, 429 backoff
+    http.ts                  Token bucket, TTL/stale cache, request coalescing, timeouts
+    index.ts                 createProvider(mode, apiKey, opts); one shared mock keeps prices continuous
+    config.ts                EXPO_PUBLIC_DATA_PROVIDER, proxy URL, optional keys (dev only)
     symbols.ts               Symbol universe + search
   store/
     orders.ts                Pure order engine: validate, place, fill, process open orders, cancel, summarize
+    persist.ts               Schema-checked AsyncStorage loader
     AppContext.tsx           React context: quote stream, account state, AsyncStorage persistence
-  components/                PriceChart (react-native-svg + responder scrubbing), UI primitives
+  components/                PriceChart, DataBadge, UI primitives
   screens/                   Portfolio, Watchlist, Symbol, Trade, Orders, Settings
-public/                      PWA: index.html template (meta/iOS tags), manifest.json, sw.js, icons
-scripts/                     host.sh (public tunnel), serve.js (static server), pwa-postexport.js, make_source_zip.py
-__tests__/                   Jest tests for the order engine and providers
+public/                      PWA: index.html template (meta/iOS tags, CSP), manifest.json, sw.js, icons
+proxy/                       Optional Node / Cloudflare Worker proxy (not deployed; keys stay server-side)
+scripts/                     host.sh, serve.js, pwa-postexport.js, make_source_zip.py, check-export-env.js
+__tests__/                   Jest tests for the order engine, providers, HTTP helpers, and persistence
 ```
 
 The order engine has no React or IO dependencies, so it is fully unit tested. On every quote batch, `AppContext` calls `processOpenOrders` to fill limit orders whose price has been crossed.
@@ -116,22 +119,51 @@ Use `npx eas-cli@latest build -p ios`. This needs an Apple Developer account. iO
 
 ## Market data: switching to a real provider
 
+Mock data is the default and works offline with no keys. Live mode is a hybrid: crypto goes to CoinGecko, stocks go to Finnhub.
+
 | Mode | Stocks | Crypto |
 |---|---|---|
 | `mock` (default) | Deterministic random walk | Deterministic random walk |
-| `live` | Finnhub `/quote`, polled every 20 s (needs key; mock if no key) | CoinGecko `/simple/price`, polled every 30 s, plus `/market_chart` history (no key) |
+| `live` | Finnhub `/quote`, polled every 20 s (needs a key or a proxy; otherwise mock) | CoinGecko `/simple/price`, polled every 30 s, plus `/market_chart` history (no key required) |
 
-There are three ways to choose the mode:
+A header badge shows the current mode:
 
-1. **In the app:** Settings → Market data provider → **Live**. You can optionally paste a free key from https://finnhub.io for stocks.
-2. **Env at build/start time:** copy `.env.example` to `.env` and set:
+- **LIVE DATA** (green) — Live mode, at least one real quote is showing.
+- **MOCK** (grey) — Mock mode.
+- **MOCK FALLBACK** (orange) — Live mode, but every current quote had to fall back to mock (no key, error, timeout, or rate limit).
+
+Per-symbol badges appear on the watchlist, holdings, and symbol screen when you are in Live mode.
+
+### Configuring API keys
+
+**Do not put API keys in `EXPO_PUBLIC_*` variables for the public GitHub Pages build.** Expo inlines those values into the JavaScript bundle, where anyone can read them. `npm run export:web` will refuse to run if a key is set.
+
+Preferred options, in order:
+
+1. **In the app (stocks):** Settings → paste a free Finnhub key from [finnhub.io](https://finnhub.io) (create a free account, copy the API key). The key is stored only on this device (AsyncStorage / localStorage), is never shown in full (it is masked, e.g. `••••abcd`), and can be cleared. Crypto does not need a key.
+2. **Optional backend proxy:** run `proxy/server.mjs` or deploy `proxy/worker.js` yourself (this repo does not deploy it). Hold `FINNHUB_API_KEY` on the server, then point the app at it with `EXPO_PUBLIC_DATA_PROXY_URL`. See [proxy/README.md](proxy/README.md). Also add the proxy origin to `connect-src` in `public/index.html`.
+3. **Local development only:** copy `.env.example` to `.env` (gitignored) and, if you really want keys at dev time:
    ```
    EXPO_PUBLIC_DATA_PROVIDER=live
-   EXPO_PUBLIC_API_KEY=<finnhub key>
+   EXPO_PUBLIC_FINNHUB_API_KEY=          # optional, local only
+   EXPO_PUBLIC_COINGECKO_API_KEY=        # optional demo key; sent as x-cg-demo-api-key
+   EXPO_PUBLIC_DATA_PROXY_URL=           # e.g. http://localhost:8787
+   EXPO_PUBLIC_API_KEY=                  # deprecated alias of the Finnhub key
    ```
-3. **Code:** implement `MarketDataProvider` (`src/data/types.ts`) and return it from `createProvider` in `src/data/index.ts`.
+4. **Code:** implement `MarketDataProvider` (`src/data/types.ts`) and return it from `createProvider` in `src/data/index.ts`.
 
-If a request fails (network error, rate limit, missing key, or empty data), the app uses the mock feed for that symbol, so it keeps working. Finnhub's candle endpoint is paid, so stock charts in live mode are generated by the mock engine but anchored to the real last price.
+You can still switch Mock / Live at runtime in Settings regardless of the env default.
+
+### Rate limits, caching, and fallback
+
+- Client-side token buckets: CoinGecko ≈ 30 requests/min, Finnhub ≈ 50/min (free tier is 60/min).
+- Identical in-flight requests are coalesced. Quotes are cached ~20 s; candles are cached longer (5–30 min by timeframe).
+- HTTP 429 is retried with exponential backoff, honoring `Retry-After`. Requests time out after 8 s (`AbortController`).
+- If there is no Finnhub key and no proxy, stocks stay on mock in Live mode (crypto still uses CoinGecko).
+- If a live request fails, times out, or exhausts 429 retries, the app first reuses a recent real quote (up to 10 minutes) so prices do not jump to the mock scale; only then does it fall back to mock for that symbol, marked **MOCK FALLBACK**. The app never crashes on a data error.
+- Finnhub's candle endpoint is paid, so stock charts in Live mode are generated by the mock engine but anchored to the real last price.
+
+The public site's CSP already allows `https://api.coingecko.com` and `https://finnhub.io`. CoinGecko and Finnhub both support browser CORS.
 
 ## Self-hosting through a tunnel (optional, temporary)
 
@@ -156,5 +188,6 @@ See `screenshots/` (390×844 phone viewport, taken with headless Chromium agains
 
 - Paper trading only: no brokerage, auth, or real orders. There are no fees and no market-hours rules, so stocks tick 24/7 in mock mode.
 - Today's P&L is measured against the previous close, including for positions opened today.
-- The live stock history is synthetic (see above), and CoinGecko's free tier is rate-limited.
+- The live stock history is synthetic (see above). CoinGecko's free tier is rate-limited; the app throttles, caches, and falls back to mock when needed.
+- A Finnhub key entered in Settings is stored on the device. The public Pages build does not include any API key. An optional proxy is documented but not hosted here.
 - Primary hosting is GitHub Pages (permanent). Older deed.page / catbox mirrors may still work.

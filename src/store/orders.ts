@@ -66,9 +66,16 @@ export function availableQty(acct: Account, symbol: string): number {
 }
 
 /** Returns an error message, or null when the order is valid. */
+const SYM_RE = /^[A-Za-z0-9._-]{1,16}$/;
+const MAX_QTY = 1_000_000_000;
+
 export function validateOrder(acct: Account, req: OrderRequest, marketPrice: number): string | null {
-  if (!req.symbol) return 'Symbol is required';
+  if (typeof req.symbol !== 'string' || !req.symbol.trim()) return 'Symbol is required';
+  if (!SYM_RE.test(req.symbol.trim())) return 'Invalid symbol';
+  if (req.side !== 'buy' && req.side !== 'sell') return 'Invalid side';
+  if (req.type !== 'market' && req.type !== 'limit') return 'Invalid order type';
   if (!isFinite(req.qty) || req.qty <= 0) return 'Quantity must be greater than 0';
+  if (req.qty > MAX_QTY) return 'Quantity is too large';
   if (req.type === 'limit' && (!isFinite(req.limitPrice ?? NaN) || (req.limitPrice ?? 0) <= 0))
     return 'Limit price must be greater than 0';
   if (!isFinite(marketPrice) || marketPrice <= 0) return 'No market price available';
@@ -121,7 +128,7 @@ export function placeOrder(
   const error = validateOrder(acct, req, marketPrice);
   const base: Order = {
     id: newOrderId(now),
-    symbol: req.symbol,
+    symbol: req.symbol.trim().toUpperCase(),
     side: req.side,
     type: req.type,
     qty: req.qty,
@@ -136,7 +143,7 @@ export function placeOrder(
   if (req.type === 'market' || isMarketable(base, marketPrice)) {
     const fillPrice = req.type === 'market' ? marketPrice : bestFill(base, marketPrice);
     const filled: Order = { ...base, status: 'filled', filledAt: now, fillPrice };
-    const after = applyFill(acct, req.symbol, req.side, req.qty, fillPrice);
+    const after = applyFill(acct, base.symbol, req.side, req.qty, fillPrice);
     return { account: { ...after, orders: [filled, ...acct.orders] }, order: filled, error: null };
   }
   return { account: { ...acct, orders: [base, ...acct.orders] }, order: base, error: null };

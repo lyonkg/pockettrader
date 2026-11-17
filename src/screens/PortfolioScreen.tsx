@@ -7,13 +7,15 @@ import { availableCash, summarize } from '../store/orders';
 import { STARTING_CASH } from '../data/config';
 import { getSymbolInfo } from '../data/symbols';
 import { Card, PnlText, Row } from '../components/ui';
+import { DataBadge } from '../components/DataBadge';
+import { describeQuote } from '../data';
 import { colors } from '../theme';
 import { fmtMoney, fmtPct, fmtQty } from '../utils/format';
 import type { RootStackParamList } from '../navigation';
 
 export default function PortfolioScreen() {
   const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { account, quotes } = useApp();
+  const { account, quotes, settings } = useApp();
   const s = summarize(account, quotes);
   const totalReturn = s.totalValue - STARTING_CASH;
   const dayBase = s.totalValue - s.dayPnl;
@@ -52,7 +54,10 @@ export default function PortfolioScreen() {
             return (
               <Pressable key={sym} onPress={() => nav.navigate('Symbol', { symbol: sym })} style={[styles.holding, i > 0 && styles.sep]}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.sym}>{sym}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={styles.sym}>{sym}</Text>
+                    {describeQuote(settings.provider, q) ? <DataBadge info={describeQuote(settings.provider, q)!} compact /> : null}
+                  </View>
                   <Text style={styles.small}>{fmtQty(pos.qty)} @ {fmtMoney(pos.avgCost)} avg</Text>
                   <Text style={styles.small}>{getSymbolInfo(sym)?.name}</Text>
                 </View>

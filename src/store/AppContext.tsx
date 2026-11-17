@@ -1,25 +1,17 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createProvider, MarketDataProvider, ProviderMode, Quote } from '../data';
-import { ENV_API_KEY, ENV_PROVIDER, STARTING_CASH } from '../data/config';
+import { createProvider, MarketDataProvider, Quote, sanitizeKey } from '../data';
+import { ENV_COINGECKO_API_KEY, ENV_DATA_PROXY_URL, ENV_FINNHUB_API_KEY, ENV_PROVIDER, STARTING_CASH } from '../data/config';
 import { DEFAULT_WATCHLIST, UNIVERSE } from '../data/symbols';
 import { fmtMoney, fmtQty } from '../utils/format';
 import {
   Account, cancelOrder, createAccount, Order, OrderRequest, placeOrder, processOpenOrders,
 } from './orders';
+import { parsePersisted, Persisted, Settings } from './persist';
 
 const STORAGE_KEY = 'tradingapp:v1';
 
-export interface Settings {
-  provider: ProviderMode;
-  apiKey: string;
-}
-
-interface Persisted {
-  account: Account;
-  watchlist: string[];
-  settings: Settings;
-}
+export type { Settings };
 
 interface AppState {
   ready: boolean;
@@ -29,6 +21,7 @@ interface AppState {
   quotes: Record<string, Quote>;
   provider: MarketDataProvider;
   notice: string | null;
+  dataError: string | null;
   submitOrder: (req: OrderRequest) => { order: Order; error: string | null };
   cancel: (id: string) => void;
   addToWatchlist: (s: string) => void;
@@ -43,7 +36,8 @@ const Ctx = createContext<AppState | null>(null);
 const defaults = (): Persisted => ({
   account: createAccount(STARTING_CASH),
   watchlist: [...DEFAULT_WATCHLIST],
-  settings: { provider: ENV_PROVIDER, apiKey: ENV_API_KEY },
+  // Do not copy an env API key into persisted settings — keys belong in Settings (device) or a proxy.
+  settings: { provider: ENV_PROVIDER, apiKey: '' },
 });
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
@@ -51,25 +45,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<Persisted>(defaults);
   const [quotes, setQuotes] = useState<Record<string, Quote>>({});
   const [notice, setNotice] = useState<string | null>(null);
+  const [dataError, setDataError] = useState<string | null>(null);
   const quotesRef = useRef(quotes);
   quotesRef.current = quotes;
 
   const stateRef = useRef(state);
   stateRef.current = state;
 
+  const errorRef = useRef<(e: unknown, ctx: string) => void>(() => {});
+  errorRef.current = (e, ctx) => {
+    const msg = e instanceof Error ? e.message : String(e);
+    setDataError(`${ctx}: ${msg}`);
+  };
+
   // Load persisted state once.
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY)
       .then((raw) => {
-        if (raw) {
-          const p = JSON.parse(raw) as Partial<Persisted>;
-          const d = defaults();
-          setState({
-            account: p.account ?? d.account,
-            watchlist: p.watchlist ?? d.watchlist,
-            settings: { ...d.settings, ...(p.settings ?? {}) },
-          });
-        }
+        if (raw) setState(parsePersisted(raw, defaults()));
       })
       .catch((e) => console.warn('Failed to load state', e))
       .finally(() => setReady(true));
@@ -82,9 +75,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [state, ready]);
 
   const provider = useMemo(
-    () => createProvider(state.settings.provider, state.settings.apiKey),
+    () =>
+      createProvider(state.settings.provider, state.settings.apiKey || ENV_FINNHUB_API_KEY || undefined, {
+        coinGeckoKey: ENV_COINGECKO_API_KEY || undefined,
+        proxyUrl: ENV_DATA_PROXY_URL || undefined,
+        onError: (e, ctx) => errorRef.current(e, ctx),
+      }),
     [state.settings.provider, state.settings.apiKey],
   );
+
+  useEffect(() => {
+    setDataError(null);
+    setQuotes({});
+  }, [provider]);
 
   // Stream quotes for the whole universe; fill resting limit orders as prices move.
   useEffect(() => {
@@ -128,12 +131,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     quotes,
     provider,
     notice,
+    dataError,
     submitOrder,
     cancel: (id) => setState((s) => ({ ...s, account: cancelOrder(s.account, id) })),
     addToWatchlist: (sym) =>
       setState((s) => (s.watchlist.includes(sym) ? s : { ...s, watchlist: [...s.watchlist, sym] })),
     removeFromWatchlist: (sym) => setState((s) => ({ ...s, watchlist: s.watchlist.filter((x) => x !== sym) })),
-    updateSettings: (patch) => setState((s) => ({ ...s, settings: { ...s.settings, ...patch } })),
+    updateSettings: (patch) =>
+      setState((s) => {
+        const next = { ...s.settings, ...patch };
+        if (patch.apiKey != null) next.apiKey = sanitizeKey(patch.apiKey);
+        if (patch.provider != null && patch.provider !== 'live' && patch.provider !== 'mock') next.provider = s.settings.provider;
+        return { ...s, settings: next };
+      }),
     resetAccount: () => setState((s) => ({ ...s, account: createAccount(STARTING_CASH), watchlist: [...DEFAULT_WATCHLIST] })),
     dismissNotice: () => setNotice(null),
   };

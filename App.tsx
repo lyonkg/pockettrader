@@ -12,6 +12,8 @@ import OrdersScreen from './src/screens/OrdersScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import SymbolScreen from './src/screens/SymbolScreen';
 import TradeScreen from './src/screens/TradeScreen';
+import { DataBadge } from './src/components/DataBadge';
+import { describeDataMode } from './src/data';
 import { colors } from './src/theme';
 import type { RootStackParamList, TabParamList } from './src/navigation';
 
@@ -24,6 +26,11 @@ const theme = {
 };
 
 const ICONS: Record<keyof TabParamList, string> = { Portfolio: '◔', Watchlist: '☆', Orders: '≡', Settings: '⚙' };
+
+function ModeBadge() {
+  const { settings, quotes } = useApp();
+  return <DataBadge info={describeDataMode(settings.provider, quotes)} style={{ marginRight: 12 }} />;
+}
 
 function Tabs() {
   const insets = useSafeAreaInsets();
@@ -44,6 +51,7 @@ function Tabs() {
         tabBarInactiveTintColor: colors.muted,
         tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 18, lineHeight: 22, height: 22 }}>{ICONS[route.name]}</Text>,
         tabBarLabelStyle: { fontSize: 11, lineHeight: 14, fontWeight: '600' },
+        headerRight: () => <ModeBadge />,
       })}
     >
       <Tab.Screen name="Portfolio" component={PortfolioScreen} />

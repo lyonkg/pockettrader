@@ -77,3 +77,11 @@ User approved publishing to a public GitHub Pages repo under `lyonkg`. Steps use
 5. Pushed `dist/` to `gh-pages` branch and enabled Pages via the GitHub API.
 6. Created Release `v1.0.0` with APK + source zip.
 7. Primary URLs in README point at GitHub; deed.page/catbox listed as older mirrors.
+
+## 7. Real market data hardening + audit + v1.1.0 (2026-11-17)
+
+User request (verbatim):
+
+> Ajoute le support des vraies données de marché à PocketTrader. Par défaut, garde les données fictives/mock comme mode principal, mais implémente un commutateur facile (déjà présent dans les réglages) pour basculer vers de vraies données via CoinGecko (crypto) et Finnhub (actions). Gère le rate limiting, le fallback gracieux vers les données mock si l'API échoue ou si aucune clé n'est configurée, et affiche un indicateur clair dans l'UI quand on est en mode données réelles. Ajoute les instructions de configuration des clés API dans le README. Lance les tests et itère jusqu'à ce que tout fonctionne.
+
+Follow-up (audit, then publish with approval): targeted audit of bugs, security (client-side API keys, injection, AsyncStorage), rate limiting, mock/real inconsistencies; fix critical then major issues; optional backend proxy; publish v1.1.0. A later request asked for a Mac app build after v1.1.0.

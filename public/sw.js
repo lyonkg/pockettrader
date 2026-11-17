@@ -1,5 +1,5 @@
 // Minimal offline-capable service worker for the PocketTrader PWA.
-const CACHE = 'pockettrader-v2';
+const CACHE = 'pockettrader-v3';
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['/', '/manifest.json', '/icon-192.png'])).then(() => self.skipWaiting()));
 });

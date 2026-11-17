@@ -1,6 +1,6 @@
 import { getSymbolInfo, UNIVERSE } from './symbols';
 import { gaussian, hashString, mulberry32 } from './random';
-import { Candle, MarketDataProvider, Quote, QuoteListener, Timeframe } from './types';
+import { Candle, DataStatus, MarketDataProvider, Quote, QuoteListener, Timeframe } from './types';
 
 interface SymState {
   price: number;
@@ -71,6 +71,7 @@ export class MockProvider implements MarketDataProvider {
       changePct: (change / st.prevClose) * 100,
       timestamp: this.now(),
       source: 'mock',
+      origin: 'mock',
     };
   }
 
@@ -133,6 +134,11 @@ export class MockProvider implements MarketDataProvider {
         this.timer = null;
       }
     };
+  }
+
+
+  getStatus(): DataStatus {
+    return { mode: 'mock', hasFinnhubKey: false, usingProxy: false, lastError: null, symbolErrors: {} };
   }
 
   /** Initialise all universe symbols (handy for tests / snapshots). */
