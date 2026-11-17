@@ -13,6 +13,8 @@ The link opens the app directly in mobile Safari or Chrome over HTTPS, with no l
 | Web app / PWA (primary) | https://lyonkg.github.io/pockettrader/ | Permanent (GitHub Pages) |
 | Source repository | https://github.com/lyonkg/pockettrader | Permanent |
 | Android APK (debug-signed, arm64) | https://github.com/lyonkg/pockettrader/releases/download/v1.1.0/trading-app.apk | Permanent (GitHub Release) |
+| Mac app (Apple Silicon, unsigned zip) | https://github.com/lyonkg/pockettrader/releases/download/v1.1.0/PocketTrader-1.1.0-mac-arm64.zip | Permanent (GitHub Release) |
+| Mac app (Intel, unsigned zip) | https://github.com/lyonkg/pockettrader/releases/download/v1.1.0/PocketTrader-1.1.0-mac-x64.zip | Permanent (GitHub Release) |
 | Source code zip | https://github.com/lyonkg/pockettrader/releases/download/v1.1.0/trading-app-source.zip | Permanent (GitHub Release) |
 
 Older mirrors (may expire):
@@ -179,6 +181,28 @@ curl -s localhost:4040/api/tunnels      # shows the https://…exp.direct public
 ### Permanent hosting
 
 `dist/` is a plain static site. It uses absolute `/` asset paths, so host it at a domain root (or set `experiments.baseUrl` in app.json for a sub-path such as GitHub project pages). To publish it permanently, drag it onto Netlify Drop or use `npx vercel dist`, `npx surge dist`, GitHub Pages, or Cloudflare Pages (each needs your own account). Copy `downloads/*` into `dist/` first if you also want the APK and zip hosted there.
+
+
+## Mac app
+
+Download the zip that matches your Mac, unzip it, and drag `PocketTrader.app` to Applications:
+
+- Apple Silicon (M1/M2/M3/M4): [PocketTrader-1.1.0-mac-arm64.zip](https://github.com/lyonkg/pockettrader/releases/download/v1.1.0/PocketTrader-1.1.0-mac-arm64.zip)
+- Intel: [PocketTrader-1.1.0-mac-x64.zip](https://github.com/lyonkg/pockettrader/releases/download/v1.1.0/PocketTrader-1.1.0-mac-x64.zip)
+
+The app is a local Electron wrapper around the same web build (not the GitHub Pages site), so it works offline for mock data. Live crypto still calls CoinGecko; live stocks need a Finnhub key entered in Settings.
+
+**Gatekeeper / quarantine (unsigned, not notarized):** macOS will likely warn that the app cannot be opened because it is from an unidentified developer. That is expected. To open it:
+
+1. Right-click (or Control-click) `PocketTrader.app` → **Open**, then confirm; or
+2. System Settings → Privacy & Security → **Open Anyway**; or
+3. In Terminal: `xattr -dr com.apple.quarantine /Applications/PocketTrader.app`
+
+A `.dmg` installer is not provided: it cannot be built reliably from Linux (it needs macOS tools such as `sips` / `hdiutil`).
+
+**PWA alternative (no download):** open [https://lyonkg.github.io/pockettrader/](https://lyonkg.github.io/pockettrader/) in Safari, then File → **Add to Dock**, or in Chrome use Install / Add to Dock.
+
+To rebuild the Mac zips from this repo (Linux or macOS): export the web app with an empty `expo.experiments.baseUrl` into `desktop/www`, then `cd desktop && npm install && npm run pack:mac`. See `desktop/README.md`.
 
 ## Screenshots
 

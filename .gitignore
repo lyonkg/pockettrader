@@ -45,3 +45,8 @@ downloads/
 
 downloads/*.json
 downloads/*.txt
+
+# Electron desktop build artifacts (sources in desktop/ stay tracked)
+desktop/node_modules/
+desktop/out/
+desktop/www/
